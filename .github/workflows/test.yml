@@ -1,4 +1,4 @@
-name: Linux tests
+name: HPC Tests
 
 on:
   workflow_call:
