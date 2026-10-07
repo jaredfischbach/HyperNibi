@@ -1,4 +1,4 @@
-name: Linux tests
+name: Linux x86-64
 
 on:
   workflow_call:
@@ -10,12 +10,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.95.0
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.9.2
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
       - name: Test Linux CLI and scheduler
