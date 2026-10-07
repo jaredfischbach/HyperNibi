@@ -1,4 +1,4 @@
-name: Release
+name: Compile Release
 
 on:
   push:
