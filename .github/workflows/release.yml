@@ -28,10 +28,11 @@ jobs:
       - uses: actions/checkout@v5
       - name: Generate changelog
         run: python3 scripts/extract_changelog.py "${{ github.ref_name }}" > generated-changelog.md
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         with:
           name: archive-x64
           path: archive-x64
+      - run: ls -R archive-x64
       - uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
