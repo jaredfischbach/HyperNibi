@@ -78,7 +78,6 @@ For a **new SLURM submission**, the allocator chooses the first walltime tier st
 | 12h to less than 24h | 24h |
 | 24h to less than 72h | 72h |
 | 72h to less than 168h | 168h |
-| 168h or more | No eligible configured tier |
 
 Connected workers accept tasks that fit their available resources and remaining time, without the extra time tier or allocation CPU/memory thresholds. A worker exits after **five minutes with no running tasks**. Falling below 50% does not retire it; a running task still counts as active even when its measured CPU usage is zero. SLURM allocation status is refreshed every five minutes.
 
