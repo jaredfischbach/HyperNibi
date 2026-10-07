@@ -1,4 +1,4 @@
-name: Create Nibi release
+name: Release
 
 on:
   push:
