@@ -53,7 +53,7 @@ Memory is in MiB, matching SLURM `--mem=<value>M`. Note: `1G = 1024M`.
 | `h100_2g.20gb` | 4 | 63488 | `worker/h100mig20=1` | N/A | 24 | 12 | No |
 | `H100-3g.40gb` | 6 | 126976 | `worker/h100mig40=1` | N/A | 24 | 12 | No |
 
-GPU workers each reserve **one** matching GPU or MIG instance via SLURM `--gres=gpu:<type>:1`. GPU tasks must explicitly request the exact GPU or MIG class from the table, **`--resource gpus=1`**, including matching their defined CPU and memory allotments. For example, `--resource worker/h100mig20=1` selects the 20-GB H100 MIG type; `gpus=1` alone does not select a model or MIG size. Each task reserves the worker's one indexed device. Every task must request its resource class using `--resource`, so it can run only on workers that provide that class.
+GPU workers each reserve **one** matching GPU or MIG instance via SLURM `--gres=gpu:<type>:1`. GPU tasks must also explicitly request the exact GPU or MIG class from the table, **`--resource gpus=1`**, including matching their defined CPU and memory allotments. For example, `--resource worker/h100mig20=1` selects the 20-GB H100 MIG type. Each task reserves the worker's one indexed device. Every task must request its resource class using `--resource`, so it can run only on workers that provide that class.
 
 This Nibi setup currently supports **one GPU or MIG instance and one node per task**. Multi-GPU requests such as `:2` or `:4`, and individual tasks spanning multiple nodes, are not supported.
 
@@ -122,7 +122,7 @@ A 20-GB H100 MIG example requests **4 CPUs, 63488 MiB, and one device**:
 
 ```bash
 hq submit --cpus 4 --resource mem=63488 --resource worker/h100mig20=1 \
-    --resource gpus=1 --time-request 1h --time-limit 1h /bin/bash ./mock_task.sh
+    --resource gpus=1 --time-request 48h --time-limit 48h /bin/bash ./mock_task.sh
 ```
 
 The two task time options have separate purposes:
@@ -173,12 +173,31 @@ Add this to your custom Nextflow config and pass it with `-c`. This sets the bas
 
 ```groovy
 process {
-    executor = 'hq'
-    cpus     = 1
-    memory   = 4096.MB
-    time     = 4.h
-
+    // Job scheduler
+    shell          = ['/bin/bash', '-euo', 'pipefail']
+    executor       = 'hq'
     clusterOptions = { "--resource worker/cpu=1 --time-request ${task.time.toSeconds()}sec" }
+
+    // Cache level
+    cache = 'deep'
+
+    // Use node-local storage
+    scratch      = '$SLURM_TMPDIR'
+    stageInMode  = 'copy'
+    stageOutMode = 'rsync'
+
+    // Defaults for undefined processes
+    cpus   = { 1 * task.attempt }
+    memory = { 4096.MB * task.attempt }
+    time   = { 4.h * task.attempt }
+
+    // Resource limits
+    resourceLimits = [
+        memory: 766000.MB,
+        cpus:   192,
+        time:   168.h,
+        disk:   3.TB
+    ]
 }
 ```
 
@@ -211,12 +230,14 @@ process {
     }
 
     withLabel: process_gpu {
-        cpus        = 14
-        memory      = 256000.MB
-        time        = 4.h
-        accelerator = 1
-
-        clusterOptions = { "--resource worker/h100=1 --time-request ${task.time.toSeconds()}sec" }
+        accelerator      = 1
+        clusterOptions   = { "--resource worker/h100=1 --time-request ${task.time.toSeconds()}sec" }
+        ext.use_gpu      = true
+        cpus             = 14
+        memory           = 256000.MB
+        containerOptions = {
+            params.gpu_container_options ?: (workflow.containerEngine in ['apptainer'] ? '--nv' : '--gpus all')
+        }
     }
 }
 ```
