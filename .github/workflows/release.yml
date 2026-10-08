@@ -20,7 +20,7 @@ jobs:
       version: ${{ github.ref_name }}
       sha: ${{ github.sha }}
   create-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [build-artifacts]
     permissions:
       contents: write

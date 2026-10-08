@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   set-env:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       version: ${{ env.HQ_VERSION }}
       sha: ${{ env.HQ_SHA }}
@@ -31,7 +31,7 @@ jobs:
           echo "HQ_SHA=${{ inputs.sha || github.sha }}" | tee -a $GITHUB_ENV
   build-binaries-x64:
     needs: [ set-env ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # Use a container with GLIBC 2.28
     container: quay.io/pypa/manylinux_2_28_x86_64
     steps:
