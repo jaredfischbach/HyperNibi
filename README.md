@@ -57,8 +57,6 @@ Memory is in MiB, matching SLURM `--mem=<value>M`. Note: `1G = 1024M`.
 | `h100_2g.20gb` | 4 | 63488 | `worker/h100mig20=1` | N/A | 24 | 12 | No |
 | `H100-3g.40gb` | 6 | 126976 | `worker/h100mig40=1` | N/A | 24 | 12 | No |
 
-The base 1/32 option's exact memory fraction is 23937.5 MiB; its worker pool and SLURM request both round down to 23937 MiB. A request of 23938 MiB fits the base 1/16 and satisfies its 50% memory minimum.
-
 GPU workers each reserve **one** matching GPU or MIG instance via SLURM `--gres=gpu:<type>:1`. GPU tasks must also explicitly request the exact GPU or MIG class from the table, **`--resource gpus=1`**, including matching their defined CPU and memory allotments. For example, `--resource worker/h100mig20=1` selects the 20-GB H100 MIG type. Each task reserves the worker's one indexed device. Every task must request its resource class using `--resource`. All CPU tasks use `worker/cpu=1`; CPU family selection follows the memory rule below. GPU tasks use their exact GPU class.
 
 This Nibi setup currently supports **one GPU or MIG instance and one node per task**. Multi-GPU requests such as `:2` or `:4`, and individual tasks spanning multiple nodes, are not supported.
