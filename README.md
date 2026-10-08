@@ -37,33 +37,44 @@ Each SLURM allocation starts one worker on one node with one task and one thread
 
 Memory is in MiB, matching SLURM `--mem=<value>M`. Note: `1G = 1024M`.
 
-| Worker group | CPUs | Memory (MiB) | Task class (`--resource`) | Minimum requested CPUs for a new allocation | Total limit | Backlog | Exclusive |
+| Worker group | CPUs | Memory (MiB) | Task class (`--resource`) | Minimum requested demand for a new allocation | Total limit | Backlog | Exclusive |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | --- |
-| `cpu_base_full` | 192 | 766000 | `worker/cpu=1` | 96 (50%) | 100 | 25 | Yes |
-| `cpu_base_half` | 96 | 383000 | `worker/cpu=1` | 48 (50%) | 1 | 1 | No |
-| `cpu_base_quarter` | 48 | 191500 | `worker/cpu=1` | 24 (50%) | 1 | 1 | No |
-| `cpu_base_eighth` | 24 | 95750 | `worker/cpu=1` | 12 (50%) | 1 | 1 | No |
-| `cpu_base_sixteenth` | 12 | 47875 | `worker/cpu=1` | None | 1 | 1 | No |
-| `cpu_large_full` | 192 | 6144000 | `worker/cpuLarge=1` | 96 (50%) | 4 | 2 | Yes |
-| `cpu_large_half` | 96 | 3072000 | `worker/cpuLarge=1` | 48 (50%) | 1 | 1 | No |
-| `cpu_large_quarter` | 48 | 1536000 | `worker/cpuLarge=1` | 24 (50%) | 1 | 1 | No |
+| `cpu_base_full` | 192 | 766000 | `worker/cpu=1` | 96 CPUs **or** 383000 MiB (50%) | 100 | 25 | Yes |
+| `cpu_base_half` | 96 | 383000 | `worker/cpu=1` | 48 CPUs **or** 191500 MiB (50%) | 1 | 1 | No |
+| `cpu_base_quarter` | 48 | 191500 | `worker/cpu=1` | 24 CPUs **or** 95750 MiB (50%) | 1 | 1 | No |
+| `cpu_base_eighth` | 24 | 95750 | `worker/cpu=1` | 12 CPUs **or** 47875 MiB (50%) | 1 | 1 | No |
+| `cpu_base_sixteenth` | 12 | 47875 | `worker/cpu=1` | 6 CPUs **or** 23937.5 MiB (50%) | 1 | 1 | No |
+| `cpu_base_thirtysecond` | 6 | 23937 | `worker/cpu=1` | None (0%) | 1 | 1 | No |
+| `cpu_large_full` | 192 | 6144000 | `worker/cpu=1` | 96 CPUs **or** 3072000 MiB (50%) | 4 | 2 | Yes |
+| `cpu_large_half` | 96 | 3072000 | `worker/cpu=1` | 48 CPUs **or** 1536000 MiB (50%) | 1 | 1 | No |
+| `cpu_large_quarter` | 48 | 1536000 | `worker/cpu=1` | 24 CPUs **or** 768000 MiB (50%) | 1 | 1 | No |
+| `cpu_large_eighth` | 24 | 768000 | `worker/cpu=1` | 12 CPUs **or** 384000 MiB (50%) | 1 | 1 | No |
+| `cpu_large_sixteenth` | 12 | 384000 | `worker/cpu=1` | 6 CPUs **or** 192000 MiB (50%) | 1 | 1 | No |
+| `cpu_large_thirtysecond` | 6 | 192000 | `worker/cpu=1` | 3 CPUs **or** 96000 MiB (50%) | 1 | 1 | No |
 | `mi300a` | 24 | 126750 | `worker/mi300a=1` | N/A | 8 | 4 | No |
 | `h100_full` | 14 | 256000 | `worker/h100=1` | N/A | 16 | 8 | No |
 | `h100_1g.10gb` | 2 | 31744 | `worker/h100mig10=1` | N/A | 48 | 24 | No |
 | `h100_2g.20gb` | 4 | 63488 | `worker/h100mig20=1` | N/A | 24 | 12 | No |
 | `H100-3g.40gb` | 6 | 126976 | `worker/h100mig40=1` | N/A | 24 | 12 | No |
 
-GPU workers each reserve **one** matching GPU or MIG instance via SLURM `--gres=gpu:<type>:1`. GPU tasks must also explicitly request the exact GPU or MIG class from the table, **`--resource gpus=1`**, including matching their defined CPU and memory allotments. For example, `--resource worker/h100mig20=1` selects the 20-GB H100 MIG type. Each task reserves the worker's one indexed device. Every task must request its resource class using `--resource`, so it can run only on workers that provide that class.
+The base 1/32 option's exact memory fraction is 23937.5 MiB; its worker pool and SLURM request both round down to 23937 MiB. A request of 23938 MiB fits the base 1/16 and satisfies its 50% memory minimum.
+
+GPU workers each reserve **one** matching GPU or MIG instance via SLURM `--gres=gpu:<type>:1`. GPU tasks must also explicitly request the exact GPU or MIG class from the table, **`--resource gpus=1`**, including matching their defined CPU and memory allotments. For example, `--resource worker/h100mig20=1` selects the 20-GB H100 MIG type. Each task reserves the worker's one indexed device. Every task must request its resource class using `--resource`. All CPU tasks use `worker/cpu=1`; CPU family selection follows the memory rule below. GPU tasks use their exact GPU class.
 
 This Nibi setup currently supports **one GPU or MIG instance and one node per task**. Multi-GPU requests such as `:2` or `:4`, and individual tasks spanning multiple nodes, are not supported.
 
 ## Allocation and scheduling rules
 
-Resources are explicit (`--detect-resources none`). Missing classes stay absent during allocation planning, including before the first worker connects. There are 65 allocation queues; registering them does not start 65 workers. Allocations are submitted only when eligible pending work exists.
+Resources are explicit (`--detect-resources none`). Missing classes stay absent during allocation planning, including before the first worker connects. There are 85 allocation queues; registering them does not start 85 workers. Allocations are submitted only when eligible pending work exists.
 
-Within a CPU class, larger workers are preferred when enough fitting work meets their CPU threshold and shared limits. The base sixteenth has no minimum and can serve small demand below the eighth's 12-CPU minimum. CPU demand means requested CPUs, not measured CPU activity or memory usage.
+All CPU tasks request the same class, `worker/cpu=1`. A task routes exclusively to large-memory workers if **both** conditions hold:
 
-Every **new large-memory allocation** must contain at least one task requesting **strictly more than 766000 MiB**, with `worker/cpuLarge=1`. Equality does not qualify, and the combined memory of several smaller tasks cannot trigger it. Each allocation must also reach 50% requested CPU demand. Smaller tasks with the same large class can contribute to that demand, but cannot cause extra large allocations on their own. Connected large workers can accept smaller tasks with `worker/cpuLarge`; ordinary `worker/cpu` tasks stay on base workers.
+- Requested memory is **at least 96000 MiB**.
+- Requested memory is **greater than or equal to requested CPUs × 16 × 1024 MiB**.
+
+Every other CPU task routes exclusively to base workers. Equality at the ratio boundary routes to large workers when the 96000-MiB floor is also met. This rule applies to new allocations and connected workers: base tasks cannot backfill large workers, and large tasks cannot run on base workers even if their resources would fit. Routing uses each task's requested resources, not measured usage or the combined memory of several tasks. There is no longer a 766000-MiB per-task trigger or a separate large CPU class.
+
+Within each family, larger workers are preferred when fitting pending work meets **either 50% requested CPU demand or 50% requested memory demand**, subject to shared limits. Only tasks eligible for that family and fitting the allocation's CPU, memory, and time limits contribute. The two percentages are not added together. The base 1/32 has no minimum (0%); the base 1/16 and **all large sizes, including the 1/16 and 1/32, retain the 50% minimum**. The large 1/32 provides 6 CPUs and 192000 MiB, so its memory minimum is exactly the 96000-MiB routing floor.
 
 Every row has five walltime queues: **3, 12, 24, 72, and 168 hours**. Names append the duration, for example `cpu_base_quarter-72h`.
 
@@ -79,7 +90,7 @@ For a **new SLURM submission**, the allocator chooses the first walltime tier st
 | 24h to less than 72h | 72h |
 | 72h to less than 168h | 168h |
 
-Connected workers accept tasks that fit their available resources and remaining time, without the extra time tier or allocation CPU/memory thresholds. A worker exits after **five minutes with no running tasks**. Falling below 50% does not retire it; a running task still counts as active even when its measured CPU usage is zero. SLURM allocation status is refreshed every five minutes.
+Connected workers accept tasks eligible for their family that fit their available resources and remaining time, without the extra time tier or allocation CPU/memory thresholds. A worker exits after **five minutes with no running tasks**. Falling below 50% does not retire it; a running task still counts as active even when its measured CPU usage is zero. SLURM allocation status is refreshed every five minutes.
 
 These allocation policies are specific to this fork. Standard resource requests and worker behavior are described in the official [resources](https://it4innovations.github.io/hyperqueue/stable/jobs/resources/) and [automatic allocation](https://it4innovations.github.io/hyperqueue/stable/deployment/allocation/) documentation.
 
@@ -108,12 +119,12 @@ hq submit \
     /bin/bash ./mock_task.sh
 ```
 
-With no connected workers or other demand, this selects a 48-CPU, 191500-MiB base quarter allocation at **72h**. It exceeds the quarter's 24-CPU minimum; the half and full minimums are not met.
+With no connected workers or other demand, this selects a 48-CPU, 191500-MiB base 1/4 allocation at **72h**. It exceeds the 1/4 worker's 24-CPU minimum; the 1/2 and full minimums are not met.
 
-A large-memory example requests **24 CPUs and 800000 MiB**. With no other demand it selects the large quarter at 72h:
+A large-memory example requests **24 CPUs and 800000 MiB**. With no other demand it selects the large 1/4 at 72h:
 
 ```bash
-hq submit --cpus 24 --resource mem=800000 --resource worker/cpuLarge=1 \
+hq submit --cpus 24 --resource mem=800000 --resource worker/cpu=1 \
     --time-request 24h --time-limit 24h /bin/bash ./mock_task.sh
 ```
 
@@ -166,9 +177,9 @@ hq server info >/dev/null 2>&1 || exit 1
 
 `HQ_JOURNAL_DIR` is used by the server launcher; Nextflow does not need it to submit tasks. Keep the pipeline work directory and inputs on storage accessible to the workers. See the official [Nextflow HQ executor documentation](https://docs.seqera.io/nextflow/executor/hyperqueue).
 
-### Base CPU configuration
+### CPU configuration
 
-Add this to your custom Nextflow config and pass it with `-c`. This sets the base CPU class for every process; pipeline process selectors can still supply their own CPU, memory, and time values.
+Add this to your custom Nextflow config and pass it with `-c`. This sets the shared CPU class for every process; pipeline process selectors can still supply their own CPU, memory, and time values.
 
 ```groovy
 process {
@@ -192,7 +203,7 @@ process {
 
     // Resource limits
     resourceLimits = [
-        memory: 766000.MB,
+        memory: 6144000.MB,
         cpus:   192,
         time:   168.h,
         disk:   3.TB
@@ -216,7 +227,7 @@ Nextflow's `time` directive supplies **`--time-limit`**, so the closure separate
 
 ### Large-memory and GPU processes
 
-Choose these classes explicitly with `withName` or `withLabel` selectors. A larger memory request alone does not change `worker/cpu` to `worker/cpuLarge`. The labels below are examples: replace them with labels your pipeline actually uses, or target the required processes with `withName`.
+CPU tasks route automatically using their resolved CPU and memory requests; no separate large-memory class is needed. GPU classes still require explicit selectors. The labels below are examples: replace them with labels your pipeline actually uses, or target the required processes with `withName`.
 
 ```groovy
 process {
@@ -225,7 +236,7 @@ process {
         memory = 800000.MB
         time   = 24.h
 
-        clusterOptions = { "--resource worker/cpuLarge=1 --time-request ${task.time.toSeconds()}sec" }
+        // Inherits the shared CPU class and time request from the default configuration.
     }
 
     withLabel: process_gpu {
@@ -241,7 +252,7 @@ process {
 }
 ```
 
-The large-memory example can trigger the large quarter: its individual request exceeds 766000 MiB and reaches that worker's 24-CPU minimum. A new allocation uses 72h for its 24h time request. Any applicable `process.resourceLimits` or pipeline-specific memory cap must permit the requested memory; a cap that lowers it to 766000 MiB or less prevents a new large allocation. See [process selectors](https://docs.seqera.io/nextflow/config#process-selectors) and [resource limits](https://docs.seqera.io/nextflow/reference/process/directives/resource-limits).
+The large-memory example routes to the large family because 800000 MiB is at least 96000 MiB and is greater than or equal to 24 × 16 × 1024 = 393216 MiB. It can trigger the large 1/4 through either its 24-CPU request or its memory request. A new allocation uses 72h for its 24h time request. Any applicable `process.resourceLimits` or pipeline-specific memory cap must permit the requested memory; routing uses the resolved request after caps and retry adjustments. See [process selectors](https://docs.seqera.io/nextflow/config#process-selectors) and [resource limits](https://docs.seqera.io/nextflow/reference/process/directives/resource-limits).
 
 The GPU example selects the full H100 class. `accelerator = 1` supplies `gpus=1`; the class identifies the model. For a MIG or MI300A task, replace `worker/h100` with its exact class from the worker table and keep CPU and memory requests within that row's capacities. Each task uses one device and one node.
 

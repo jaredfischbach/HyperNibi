@@ -17,9 +17,13 @@ EXPECTED = {
     "cpu_base_quarter": (48, 191500, "worker/cpu", 1, 1, False, None),
     "cpu_base_eighth": (24, 95750, "worker/cpu", 1, 1, False, None),
     "cpu_base_sixteenth": (12, 47875, "worker/cpu", 1, 1, False, None),
-    "cpu_large_full": (192, 6144000, "worker/cpuLarge", 4, 2, True, None),
-    "cpu_large_half": (96, 3072000, "worker/cpuLarge", 1, 1, False, None),
-    "cpu_large_quarter": (48, 1536000, "worker/cpuLarge", 1, 1, False, None),
+    "cpu_base_thirtysecond": (6, 23937, "worker/cpu", 1, 1, False, None),
+    "cpu_large_full": (192, 6144000, "worker/cpu", 4, 2, True, None),
+    "cpu_large_half": (96, 3072000, "worker/cpu", 1, 1, False, None),
+    "cpu_large_quarter": (48, 1536000, "worker/cpu", 1, 1, False, None),
+    "cpu_large_eighth": (24, 768000, "worker/cpu", 1, 1, False, None),
+    "cpu_large_sixteenth": (12, 384000, "worker/cpu", 1, 1, False, None),
+    "cpu_large_thirtysecond": (6, 192000, "worker/cpu", 1, 1, False, None),
     "mi300a": (24, 126750, "worker/mi300a", 8, 4, False, "mi300a"),
     "h100_full": (14, 256000, "worker/h100", 16, 8, False, "nvidia_h100_80gb_hbm3"),
     "h100_1g.10gb": (2, 31744, "worker/h100mig10", 48, 24, False, "nvidia_h100_80gb_hbm3_1g.10gb"),
@@ -55,14 +59,14 @@ def main():
                 timeout=60,
             )
             queues = json.loads(run(binary, root, env, "--output-mode=json", "alloc", "list").stdout)
-            assert len(queues) == 65
+            assert len(queues) == 85
             submitted = [json.loads(line) for line in commands.read_text().splitlines()]
-            assert len(submitted) == 65
+            assert len(submitted) == 85
             for args in submitted:
                 name = args[args.index("--name") + 1].rsplit("-", 1)[0]
                 assert args[args.index("--idle-timeout") + 1] == "5m"
                 assert "--no-dry-run" in args
-                if name.startswith("cpu_") and name != "cpu_base_sixteenth":
+                if name.startswith("cpu_") and name != "cpu_base_thirtysecond":
                     assert args[args.index("--allocation-min-utilization") + 1] == "0.5"
                 else:
                     assert "--allocation-min-utilization" not in args
@@ -92,7 +96,7 @@ def main():
     launcher = (ROOT / "configs/hyperqueue_server.sh").read_text()
     assert "#SBATCH --cpus-per-task=1" in launcher and "#SBATCH --mem=4096M" in launcher
     assert "hq journal prune" not in launcher
-    print("Nibi: all 65 queues, class pools, resource sizes, shared caps and server request verified")
+    print("Nibi: all 85 queues, class pools, resource sizes, shared caps and server request verified")
 
 
 if __name__ == "__main__":

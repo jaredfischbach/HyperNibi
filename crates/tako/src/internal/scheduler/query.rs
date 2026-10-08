@@ -20,7 +20,7 @@ pub(crate) fn compute_new_worker_query(
 
     /* Make sure that all resources provided by Worker has an Id */
     for query in queries {
-        if query.allocation_min_task_memory.is_some() {
+        if query.cpu_memory_routing.is_some() {
             core.get_or_create_resource_id("mem");
         }
         for item in &query.descriptor.resources {
@@ -67,12 +67,12 @@ pub(crate) fn compute_new_worker_query(
             };
             let mut worker = Worker::new(worker_id, configuration, &resource_map, now);
             worker.allocation_task_time_range = query.allocation_task_time_range.clone();
-            worker.allocation_min_task_memory = query.allocation_min_task_memory.map(|amount| {
+            worker.cpu_memory_routing = query.cpu_memory_routing.as_ref().map(|routing| {
                 (
                     resource_map
                         .get_index("mem")
-                        .expect("Memory trigger needs a mem pool"),
-                    amount,
+                        .expect("CPU routing needs a mem pool"),
+                    matches!(routing, crate::control::CpuMemoryRouting::Large),
                 )
             });
             fake_workers.push(worker);
@@ -117,16 +117,9 @@ pub(crate) fn compute_new_worker_query(
             let rq = rqv.unwrap_first();
             let n_nodes = rq.n_nodes();
             queries.iter().enumerate().find_map(|(i, worker_type)| {
-                if let Some(threshold) = worker_type.allocation_min_task_memory {
-                    let mem = resource_map.get_index("mem")?;
-                    let memory = rq.entries().iter().find(|entry| entry.resource_id == mem)?;
-                    if memory
-                        .request
-                        .amount_or_none_if_all()
-                        .is_none_or(|amount| amount <= threshold)
-                    {
-                        return None;
-                    }
+                // This Nibi policy supports only single-node CPU tasks.
+                if worker_type.cpu_memory_routing.is_some() {
+                    return None;
                 }
                 if worker_type
                     .allocation_task_time_range

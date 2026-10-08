@@ -174,11 +174,19 @@ can use any (non-zero) amount of resources of worker(s) in the allocation.
 
 This fork also supports a minimum requested CPU utilization for **new allocations only**.
 For example, `--allocation-min-utilization 0.5` requires enough currently waiting tasks to occupy
-at least half the worker's CPUs, with their other resource and time requests also fitting.
-It measures requested CPUs, not measured CPU activity or memory utilization.
+at least 1/2 of the worker's CPUs, with their other resource and time requests also fitting.
+It measures requested resources, not measured CPU activity or memory usage.
+For the explicit Nibi CPU groups (`cpu_base_*` and `cpu_large_*`), either the requested
+CPU fraction or the requested `mem` fraction can satisfy this threshold; the fractions
+are not added together. All other queues retain the CPU-only calculation.
+
+Nibi CPU tasks share `worker/cpu=1`. Tasks requesting at least 96000 MiB and
+at least requested CPUs × 16 × 1024 MiB run exclusively on large workers;
+all other CPU tasks run exclusively on base workers. This routing restriction also
+applies to connected workers, preventing cross-family backfill.
 
 The allocation-only threshold is not passed to workers. Connected workers continue accepting any
-task that fits, even below this threshold; the normal idle timeout is unchanged. If the worker's
+task that fits its resource and routing constraints, even below this threshold; the normal idle timeout is unchanged. If the worker's
 `--min-utilization` is also set, the higher of the two thresholds is used for allocation planning,
 and the worker retains its own threshold.
 

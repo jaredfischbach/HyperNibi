@@ -27,8 +27,26 @@ use crate::internal::server::explain::{
 };
 use crate::internal::server::reactor::{get_or_create_resource_rq_id, on_cancel_tasks};
 use crate::internal::server::worker::DEFAULT_WORKER_OVERVIEW_INTERVAL;
-use crate::resources::{ResourceAmount, ResourceDescriptor};
+use crate::resources::ResourceDescriptor;
 use crate::{TaskId, WorkerId};
+
+#[derive(Debug)]
+pub enum CpuMemoryRouting {
+    Base,
+    Large,
+}
+
+impl CpuMemoryRouting {
+    pub fn from_worker_group(group: &str) -> Option<Self> {
+        if group.starts_with("cpu_base_") {
+            Some(Self::Base)
+        } else if group.starts_with("cpu_large_") {
+            Some(Self::Large)
+        } else {
+            None
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct WorkerTypeQuery {
@@ -41,9 +59,9 @@ pub struct WorkerTypeQuery {
     /// Optional task time-request range for new allocations only.
     /// Existing workers are not subject to this allocation policy.
     pub allocation_task_time_range: Option<std::ops::Range<Duration>>,
-    /// Every new single-node allocation must include a task requesting strictly
-    /// more memory than this amount. Connected workers are not subject to it.
-    pub allocation_min_task_memory: Option<ResourceAmount>,
+    /// Route CPU tasks strictly by requested memory per CPU, for both new
+    /// allocations and connected Nibi CPU workers.
+    pub cpu_memory_routing: Option<CpuMemoryRouting>,
     /// Max number of workers for single-node tasks
     pub max_sn_workers: u32,
     /// How big allocations for multinode tasks can queue provide

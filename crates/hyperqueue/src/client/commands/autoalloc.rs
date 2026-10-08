@@ -123,9 +123,10 @@ struct SharedQueueOpts {
     #[arg(long)]
     max_worker_count: Option<u32>,
 
-    /// Minimum requested CPU utilization for new allocations only (0.0-1.0).
+    /// Minimum requested utilization for new allocations only (0.0-1.0).
     ///
-    /// Connected workers can accept any task that fits.
+    /// Explicit Nibi CPU groups use CPU OR memory demand; other queues use CPU demand.
+    /// Connected workers accept fitting tasks subject to their routing constraints.
     #[arg(long, default_value_t = 0.0f32, value_parser = min_utilization_parser)]
     allocation_min_utilization: f32,
 

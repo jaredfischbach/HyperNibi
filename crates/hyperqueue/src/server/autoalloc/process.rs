@@ -27,7 +27,7 @@ use std::future::Future;
 use std::path::PathBuf;
 use std::time::Instant;
 use tako::WorkerId;
-use tako::control::{ServerRef, WorkerTypeQuery};
+use tako::control::{CpuMemoryRouting, ServerRef, WorkerTypeQuery};
 use tako::resources::{CPU_RESOURCE_NAME, ResourceAmount, ResourceDescriptor};
 use tako::{Map, Set};
 use tempfile::TempDir;
@@ -475,17 +475,16 @@ fn create_queue_worker_query(queue: &AllocationQueue) -> WorkerTypeQuery {
     // With autodetection disabled, omitted resources are absent, not unknown.
     // The allocation CLI stores this option as a separate flag/value pair.
     let partial = partial && !info.resource_detection_disabled();
-    // Nibi's large-memory class must be triggered by one task above the base
-    // node's 766000 MiB capacity. This applies only to new allocation planning.
-    let allocation_min_task_memory = (info.manager() == &ManagerType::Slurm
+    let cpu_memory_routing = (info.manager() == &ManagerType::Slurm
         && info.resource_detection_disabled()
-        && descriptor
-            .resources
-            .iter()
-            .any(|r| r.name == "worker/cpuLarge"))
-    .then_some(ResourceAmount::from(766000));
+        && descriptor.resources.iter().any(|r| r.name == "worker/cpu"))
+    .then(|| {
+        info.allocation_group()
+            .and_then(CpuMemoryRouting::from_worker_group)
+    })
+    .flatten();
     WorkerTypeQuery {
-        allocation_min_task_memory,
+        cpu_memory_routing,
         descriptor,
         partial,
         time_limit: Some(info.timelimit()),
@@ -2072,37 +2071,115 @@ mod tests {
     fn large_memory_allocation_queue(cpus: u32) -> QueueBuilder {
         let mut resources = ResourceDescriptor::simple_cpus(cpus).resources;
         resources.push(ResourceDescriptorItem::sum("mem", 6144000 / 192 * cpus));
-        resources.push(ResourceDescriptorItem::sum("worker/cpuLarge", cpus));
+        resources.push(ResourceDescriptorItem::sum("worker/cpu", cpus));
         QueueBuilder::default()
             .cli_resources(Some(ResourceDescriptor::new(resources, Default::default())))
             .worker_args(vec![
                 "--detect-resources".into(),
                 "none".into(),
                 "--group".into(),
-                format!("cpu-large-{cpus}"),
+                format!("cpu_large_{cpus}"),
             ])
             .min_utilization(0.5)
             .max_worker_count(Some(if cpus == 192 { 4 } else { 1 }))
             .backlog(if cpus == 192 { 2 } else { 1 })
     }
 
+    fn nibi_base_allocation_queue(cpus: u32) -> QueueBuilder {
+        let mut resources = ResourceDescriptor::simple_cpus(cpus).resources;
+        resources.push(ResourceDescriptorItem::sum("mem", 766000 / (192 / cpus)));
+        resources.push(ResourceDescriptorItem::sum("worker/cpu", cpus));
+        QueueBuilder::default()
+            .cli_resources(Some(ResourceDescriptor::new(resources, Default::default())))
+            .worker_args(vec![
+                "--detect-resources".into(),
+                "none".into(),
+                "--group".into(),
+                format!("cpu_base_{cpus}"),
+            ])
+            .min_utilization(if cpus == 6 { 0.0 } else { 0.5 })
+            .max_worker_count(Some(1))
+    }
+
     #[tokio::test]
-    async fn large_memory_allocation_selects_size_time_and_strict_memory_trigger() {
+    async fn cpu_allocation_nibi_base_sixteenth_and_thirtysecond_thresholds() {
         for (cpus, memory, expected) in [
-            (24, 765999, None),
-            (24, 766000, None),
-            (24, 766001, Some(48)),
-            (48, 800000, Some(96)),
-            (96, 800000, Some(192)),
-            (23, 800000, None),
-            (24, 1536001, None),
-            (48, 1536001, Some(96)),
-            (96, 3072001, Some(192)),
+            (1, 100, Some(6)),
+            (1, 23937, Some(6)),
+            // Rounding at 1/32: one more MiB starts 1/16 through memory demand.
+            (1, 23938, Some(12)),
+            (1, 47875, Some(24)),
+            // 1/16 needs 50% CPU when memory demand is low.
+            (5, 100, Some(6)),
+            (6, 100, Some(12)),
+            // Below the large floor, a high ratio stays base and starts via memory.
+            (1, 95999, Some(48)),
+            // Both the inclusive floor and inclusive ratio select large, never base.
+            (1, 96000, None),
+            (6, 98304, None),
+            (6, 98303, Some(48)),
         ] {
             run_test(async |mut ctx: TestCtx| {
                 let mut queues = Vec::new();
                 for hours in [3, 12, 24, 72, 168] {
-                    for size in [48, 96, 192] {
+                    for size in [6, 12, 24, 48, 96, 192] {
+                        let id = ctx
+                            .add_queue(
+                                always_queued_handler(),
+                                nibi_base_allocation_queue(size)
+                                    .timelimit(Duration::from_secs(hours * 3600)),
+                            )
+                            .await;
+                        queues.push((size, hours, id));
+                    }
+                }
+                let rq = ctx.handle.register_request(
+                    ResourceRequestConfigBuilder::default()
+                        .cpus(cpus)
+                        .add_compact("mem", memory)
+                        .add_compact("worker/cpu", 1)
+                        .min_time(Duration::from_secs(24 * 3600)),
+                );
+                ctx.create_simple_tasks(1, rq).await;
+                ctx.try_submit().await;
+                for (size, hours, id) in queues {
+                    assert_eq!(
+                        ctx.get_allocations(id).len(),
+                        usize::from(expected == Some(size) && hours == 72),
+                        "task={cpus}cpu/{memory}MiB, base={size}cpu/{hours}h"
+                    );
+                }
+            })
+            .await;
+        }
+    }
+
+    #[tokio::test]
+    async fn large_memory_allocation_selects_size_time_and_inclusive_ratio() {
+        for (cpus, memory, expected) in [
+            (24, 393215, None),
+            (24, 393216, Some(48)),
+            (24, 393217, Some(48)),
+            (4, 800000, Some(48)),
+            (48, 800000, Some(96)),
+            (96, 800000, None),
+            (1, 95999, None),
+            (1, 96000, Some(6)),
+            (1, 191999, Some(6)),
+            (1, 192000, Some(12)),
+            (1, 384000, Some(24)),
+            (1, 768000, Some(48)),
+            (1, 1536000, Some(96)),
+            (1, 3072000, Some(192)),
+            (24, 1536001, Some(96)),
+            (48, 1536001, Some(96)),
+            (96, 3072001, Some(192)),
+            (1, 6144001, None),
+        ] {
+            run_test(async |mut ctx: TestCtx| {
+                let mut queues = Vec::new();
+                for hours in [3, 12, 24, 72, 168] {
+                    for size in [6, 12, 24, 48, 96, 192] {
                         let id = ctx
                             .add_queue(
                                 always_queued_handler(),
@@ -2117,7 +2194,7 @@ mod tests {
                     ResourceRequestConfigBuilder::default()
                         .cpus(cpus)
                         .add_compact("mem", memory)
-                        .add_compact("worker/cpuLarge", 1)
+                        .add_compact("worker/cpu", 1)
                         .min_time(Duration::from_secs(24 * 3600)),
                 );
                 ctx.create_simple_tasks(1, rq).await;
@@ -2135,11 +2212,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn large_memory_allocation_one_trigger_does_not_launch_extra_workers_for_small_tasks() {
+    async fn large_memory_allocation_base_tasks_do_not_launch_extra_large_workers() {
         run_test(async |mut ctx: TestCtx| {
             let mut queues = Vec::new();
             for hours in [3, 12, 24, 72, 168] {
-                for size in [48, 96, 192] {
+                for size in [6, 12, 24, 48, 96, 192] {
                     let id = ctx
                         .add_queue(
                             always_queued_handler(),
@@ -2154,14 +2231,14 @@ mod tests {
                 ResourceRequestConfigBuilder::default()
                     .cpus(24)
                     .add_compact("mem", 800000)
-                    .add_compact("worker/cpuLarge", 1)
+                    .add_compact("worker/cpu", 1)
                     .min_time(Duration::from_secs(24 * 3600)),
             );
             let small = ctx.handle.register_request(
                 ResourceRequestConfigBuilder::default()
                     .cpus(1)
                     .add_compact("mem", 100)
-                    .add_compact("worker/cpuLarge", 1)
+                    .add_compact("worker/cpu", 1)
                     .min_time(Duration::from_secs(24 * 3600)),
             );
             ctx.handle

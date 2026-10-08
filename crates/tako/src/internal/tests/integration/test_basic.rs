@@ -137,7 +137,7 @@ async fn test_query_no_output_immediate_call() {
         let msg = query_helper(
             &mut handler,
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(12),
@@ -166,7 +166,7 @@ async fn test_query_no_output_delayed_call() {
         let msg = query_helper(
             &mut handler,
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(12),
@@ -195,7 +195,7 @@ async fn test_query_new_workers_delayed_call() {
         let msg = query_helper(
             &mut handler,
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(12),
@@ -222,7 +222,7 @@ async fn test_query_new_workers_immediate() {
         let msg = query_helper(
             &mut handler,
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(12),

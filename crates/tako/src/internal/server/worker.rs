@@ -9,7 +9,7 @@ use crate::internal::server::task::TaskRuntimeState;
 use crate::internal::server::taskmap::TaskMap;
 use crate::internal::server::workerload::WorkerResources;
 use crate::internal::worker::configuration::WorkerConfiguration;
-use crate::resources::{ResourceAmount, ResourceRqId};
+use crate::resources::{CPU_RESOURCE_ID, ResourceRqId};
 use crate::{Map, ResourceVariantId, TaskId, WorkerId};
 use serde_json::json;
 use std::time::{Duration, Instant};
@@ -73,7 +73,8 @@ pub struct Worker {
     pub(crate) termination_time: Option<Instant>,
     // Set only for hypothetical workers used to plan new allocations.
     pub(crate) allocation_task_time_range: Option<std::ops::Range<Duration>>,
-    pub(crate) allocation_min_task_memory: Option<(ResourceId, ResourceAmount)>,
+    // (memory resource, large family). Applies to connected and hypothetical workers.
+    pub(crate) cpu_memory_routing: Option<(ResourceId, bool)>,
 
     pub(crate) flags: WorkerFlags,
     pub(crate) stop_reason: Option<(LostWorkerReason, Instant)>,
@@ -271,11 +272,32 @@ impl Worker {
         let Some(a) = self.sn_assignment() else {
             return false;
         };
-        a.free_resources.is_capable_to_run_request(request)
+        self.accepts_cpu_memory_route(request)
+            && a.free_resources.is_capable_to_run_request(request)
+    }
+
+    fn accepts_cpu_memory_route(&self, request: &ResourceRequest) -> bool {
+        let Some((memory_id, large_worker)) = self.cpu_memory_routing else {
+            return true;
+        };
+        if request.is_multi_node() {
+            return false;
+        }
+        let memory = request
+            .get_amount(memory_id)
+            .unwrap_or(self.resources.get(memory_id));
+        let cpus = request
+            .get_amount(CPU_RESOURCE_ID)
+            .unwrap_or(self.resources.get(CPU_RESOURCE_ID));
+        let large_task = memory >= crate::resources::ResourceAmount::from(96000)
+            && u128::from(memory.total_fractions())
+                >= u128::from(cpus.total_fractions()) * 16 * 1024;
+        large_task == large_worker
     }
 
     pub fn is_capable_to_run(&self, request: &ResourceRequest, now: Instant) -> bool {
-        if !self.has_time_to_run(request.min_time(), now) {
+        if !self.accepts_cpu_memory_route(request) || !self.has_time_to_run(request.min_time(), now)
+        {
             return false;
         }
         if request.is_multi_node() {
@@ -356,11 +378,26 @@ impl Worker {
         now: Instant,
     ) -> Self {
         let resources = WorkerResources::from_description(&configuration.resources, resource_map);
+        let cpu_memory_routing = configuration
+            .resources
+            .resources
+            .iter()
+            .any(|r| r.name == "worker/cpu")
+            .then(|| crate::control::CpuMemoryRouting::from_worker_group(&configuration.group))
+            .flatten()
+            .and_then(|routing| {
+                resource_map.get_index("mem").map(|memory_id| {
+                    (
+                        memory_id,
+                        matches!(routing, crate::control::CpuMemoryRouting::Large),
+                    )
+                })
+            });
         Self {
             id,
             termination_time: configuration.time_limit.map(|duration| now + duration),
             allocation_task_time_range: None,
-            allocation_min_task_memory: None,
+            cpu_memory_routing,
             configuration,
             assignment: WorkerAssignment::empty_sn(&resources),
             resources,

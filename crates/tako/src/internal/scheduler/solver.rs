@@ -111,7 +111,6 @@ pub(crate) fn run_scheduling_solver(
     // Create worker-task placements
     for (w_idx, worker) in workers.iter().enumerate() {
         worker_cpu_constraint_no_reserves.clear();
-        let mut memory_trigger_placements = Vec::new();
         for batch in task_batches.iter() {
             let rqv = request_map.get(batch.resource_rq_id);
             let mut has_variant = false;
@@ -147,13 +146,6 @@ pub(crate) fn run_scheduling_solver(
                     let v =
                         create_sn_var(&mut solver, rq, n_workers, w_idx, worker, &resource_sums);
                     placements.insert((worker.id, batch.resource_rq_id, v_idx), v);
-                    if let Some((mem_id, threshold)) = worker.allocation_min_task_memory {
-                        let triggers = rq.entries().iter().any(|entry| {
-                            entry.resource_id == mem_id
-                                && entry.request.amount(worker.resources.get(mem_id)) > threshold
-                        });
-                        memory_trigger_placements.push((v, triggers));
-                    }
                     tasks_count_vars
                         .entry(batch.resource_rq_id)
                         .or_default()
@@ -213,23 +205,13 @@ pub(crate) fn run_scheduling_solver(
             }
         }
 
-        if worker.allocation_min_task_memory.is_some() && !memory_trigger_placements.is_empty() {
-            // A hypothetical worker can be used only if at least one assigned
-            // task exceeds the memory trigger. Smaller tasks can contribute to
-            // utilization, but cannot independently cause another allocation.
-            let max_tasks: f64 = task_batches.iter().map(|batch| f64::from(batch.size)).sum();
-            solver.set_name(|| format!("w{} allocation memory trigger", worker.id));
-            solver.add_constraint(
-                ConstraintType::Max,
-                0.0,
-                memory_trigger_placements
-                    .iter()
-                    .map(|(v, triggers)| (*v, if *triggers { 1.0 - max_tasks } else { 1.0 })),
-            );
-        }
-
         if worker.configuration.min_utilization > 0.001 {
-            add_min_utilization(&mut solver, worker, &mut worker_cpu_constraint_no_reserves);
+            add_min_utilization(
+                &mut solver,
+                worker,
+                &mut worker_cpu_constraint_no_reserves,
+                &worker_res_constraint,
+            );
         }
 
         // Create worker constraints
@@ -615,6 +597,7 @@ fn add_min_utilization(
     solver: &mut LpSolver,
     worker: &Worker,
     worker_res_constraint: &mut Vec<(Variable, f64)>,
+    resource_constraints: &[Vec<(Variable, f64)>],
 ) {
     let Some(sn) = worker.sn_assignment() else {
         return;
@@ -630,6 +613,49 @@ fn add_min_utilization(
     // Explanation: min_cpus = mu * all - used = mu * all - (all - free) = (mu - 1) * all + free
     let min_cpus = all_cpus * (worker.configuration.min_utilization as f64 - 1.0) + free_cpus;
     if min_cpus < 0.0001 {
+        return;
+    }
+    if let Some((memory_id, _)) = worker.cpu_memory_routing {
+        let all_memory = worker.resources.get(memory_id).as_f64();
+        let free_memory = sn.free_resources.get(memory_id).as_f64();
+        let min_memory =
+            all_memory * (worker.configuration.min_utilization as f64 - 1.0) + free_memory;
+        if min_memory < 0.0001 {
+            return;
+        }
+        // A nonempty placement must satisfy either CPU or memory demand.
+        // Separate selectors express OR; adding the utilization fractions would not.
+        solver.set_name(|| format!("mu_cpu_{}", worker.id));
+        let cpu_on = solver.add_bool_variable(0.0);
+        solver.set_name(|| format!("mu_mem_{}", worker.id));
+        let memory_on = solver.add_bool_variable(0.0);
+        solver.set_name(|| format!("w{} min CPU utilization", worker.id));
+        solver.add_constraint(
+            ConstraintType::Min,
+            0.0,
+            worker_res_constraint
+                .iter()
+                .copied()
+                .chain([(cpu_on, -min_cpus)]),
+        );
+        solver.set_name(|| format!("w{} min memory utilization", worker.id));
+        solver.add_constraint(
+            ConstraintType::Min,
+            0.0,
+            resource_constraints[memory_id.as_usize()]
+                .iter()
+                .copied()
+                .chain([(memory_on, -min_memory)]),
+        );
+        solver.set_name(|| format!("w{} CPU or memory utilization", worker.id));
+        solver.add_constraint(
+            ConstraintType::Max,
+            0.0,
+            worker_res_constraint
+                .iter()
+                .copied()
+                .chain([(cpu_on, -all_cpus), (memory_on, -all_cpus)]),
+        );
         return;
     }
     solver.set_name(|| format!("mu_{}", worker.id));

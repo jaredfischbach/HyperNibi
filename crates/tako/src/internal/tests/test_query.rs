@@ -1,4 +1,4 @@
-use crate::control::WorkerTypeQuery;
+use crate::control::{CpuMemoryRouting, WorkerTypeQuery};
 use crate::internal::scheduler::query::compute_new_worker_query;
 use crate::internal::server::core::Core;
 use crate::internal::server::reactor::on_cancel_tasks;
@@ -21,7 +21,7 @@ fn allocation_time_tier_reuses_existing_workers_without_extra_tier() {
         let queries = [0, 3, 12, 24, 72, 168]
             .windows(2)
             .map(|hours| WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(2),
                 time_limit: Some(Duration::from_secs(hours[1] * 3600)),
@@ -47,7 +47,7 @@ fn allocation_time_tier_uses_next_tier_when_existing_worker_has_insufficient_tim
     let queries = [0, 3, 12, 24, 72, 168]
         .windows(2)
         .map(|hours| WorkerTypeQuery {
-            allocation_min_task_memory: None,
+            cpu_memory_routing: None,
             partial: false,
             descriptor: ResourceDescriptor::simple_cpus(2),
             time_limit: Some(Duration::from_secs(hours[1] * 3600)),
@@ -69,7 +69,7 @@ fn test_query_no_tasks() {
     let r = compute_new_worker_query(
         &mut core,
         &[WorkerTypeQuery {
-            allocation_min_task_memory: None,
+            cpu_memory_routing: None,
             allocation_task_time_range: None,
             partial: false,
             descriptor: ResourceDescriptor::simple_cpus(4),
@@ -94,7 +94,7 @@ fn test_query_enough_workers() {
     let r = compute_new_worker_query(
         rt.core(),
         &[WorkerTypeQuery {
-            allocation_min_task_memory: None,
+            cpu_memory_routing: None,
             allocation_task_time_range: None,
             partial: false,
             descriptor: ResourceDescriptor::simple_cpus(4),
@@ -119,7 +119,7 @@ fn test_query_no_enough_workers1() {
         rt.core(),
         &[
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(2),
@@ -129,7 +129,7 @@ fn test_query_no_enough_workers1() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(3),
@@ -158,7 +158,7 @@ fn test_query_enough_workers2() {
         rt.core(),
         &[
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(2),
@@ -168,7 +168,7 @@ fn test_query_enough_workers2() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(3),
@@ -199,7 +199,7 @@ fn test_query_not_enough_workers3() {
         rt.core(),
         &[
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(2),
@@ -209,7 +209,7 @@ fn test_query_not_enough_workers3() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(3),
@@ -237,7 +237,7 @@ fn test_query_many_workers_needed() {
         rt.core(),
         &[
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(2),
@@ -247,7 +247,7 @@ fn test_query_many_workers_needed() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(1),
@@ -257,7 +257,7 @@ fn test_query_many_workers_needed() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(3),
@@ -290,7 +290,7 @@ fn test_query_multi_node_tasks() {
         rt.core(),
         &[
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(1),
@@ -300,7 +300,7 @@ fn test_query_multi_node_tasks() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(1),
@@ -337,7 +337,7 @@ fn test_query_multi_node_time_limit() {
         let r = compute_new_worker_query(
             rt.core(),
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(1),
@@ -369,7 +369,7 @@ fn test_query_min_utilization1() {
         let r = compute_new_worker_query(
             &mut rt.core(),
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: ResourceDescriptor::simple_cpus(*cpus),
@@ -415,7 +415,7 @@ fn test_query_min_utilization2() {
         let r = compute_new_worker_query(
             rt.core(),
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor,
@@ -445,7 +445,7 @@ fn test_query_min_utilization3() {
     let r = compute_new_worker_query(
         rt.core(),
         &[WorkerTypeQuery {
-            allocation_min_task_memory: None,
+            cpu_memory_routing: None,
             allocation_task_time_range: None,
             partial: false,
             descriptor,
@@ -491,7 +491,7 @@ fn test_query_min_utilization_vs_partial() {
         let r = compute_new_worker_query(
             rt.core(),
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true, // !!! Worker is partial!
                 descriptor,
@@ -516,7 +516,7 @@ fn test_query_min_utilization_vs_partial2() {
         let r = compute_new_worker_query(
             rt.core(),
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true, // !!! Worker is partial!
                 descriptor,
@@ -554,7 +554,7 @@ fn test_query_min_time2() {
         let r = compute_new_worker_query(
             rt.core(),
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: false,
                 descriptor: descriptor.clone(),
@@ -587,7 +587,7 @@ fn test_query_min_time1() {
     let r = compute_new_worker_query(
         rt.core(),
         &[WorkerTypeQuery {
-            allocation_min_task_memory: None,
+            cpu_memory_routing: None,
             allocation_task_time_range: None,
             partial: false,
             descriptor: descriptor.clone(),
@@ -603,7 +603,7 @@ fn test_query_min_time1() {
     let r = compute_new_worker_query(
         &mut rt.core(),
         &[WorkerTypeQuery {
-            allocation_min_task_memory: None,
+            cpu_memory_routing: None,
             allocation_task_time_range: None,
             partial: false,
             descriptor: descriptor.clone(),
@@ -626,7 +626,7 @@ fn test_query_min_time1() {
     let r = compute_new_worker_query(
         rt.core(),
         &[WorkerTypeQuery {
-            allocation_min_task_memory: None,
+            cpu_memory_routing: None,
             allocation_task_time_range: None,
             partial: false,
             descriptor,
@@ -654,7 +654,7 @@ fn test_query_sn_leftovers1() {
             rt.core(),
             &[
                 WorkerTypeQuery {
-                    allocation_min_task_memory: None,
+                    cpu_memory_routing: None,
                     allocation_task_time_range: None,
                     partial: false,
                     descriptor: ResourceDescriptor::simple_cpus(2),
@@ -664,7 +664,7 @@ fn test_query_sn_leftovers1() {
                     min_utilization: 0.0,
                 },
                 WorkerTypeQuery {
-                    allocation_min_task_memory: None,
+                    cpu_memory_routing: None,
                     allocation_task_time_range: None,
                     partial: true,
                     descriptor: ResourceDescriptor::new(Vec::new(), Default::default()),
@@ -689,7 +689,7 @@ fn test_query_sn_leftovers2() {
         let r = compute_new_worker_query(
             rt.core(),
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true,
                 descriptor: ResourceDescriptor::simple_cpus(cpus),
@@ -715,7 +715,7 @@ fn test_query_sn_leftovers() {
         rt.core(),
         &[
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true,
                 descriptor: ResourceDescriptor::new(Vec::new(), Default::default()),
@@ -725,7 +725,7 @@ fn test_query_sn_leftovers() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true,
                 descriptor: ResourceDescriptor::new(Vec::new(), Default::default()),
@@ -735,7 +735,7 @@ fn test_query_sn_leftovers() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true,
                 descriptor: ResourceDescriptor::new(Vec::new(), Default::default()),
@@ -761,7 +761,7 @@ fn test_query_partial_query_cpus() {
         rt.core(),
         &[
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true,
                 descriptor: ResourceDescriptor::simple_cpus(4),
@@ -771,7 +771,7 @@ fn test_query_partial_query_cpus() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true,
                 descriptor: ResourceDescriptor::simple_cpus(16),
@@ -781,7 +781,7 @@ fn test_query_partial_query_cpus() {
                 min_utilization: 0.0,
             },
             WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true,
                 descriptor: ResourceDescriptor::new(Vec::new(), Default::default()),
@@ -832,7 +832,7 @@ fn test_query_partial_query_gpus1() {
         let r = compute_new_worker_query(
             rt.core(),
             &[WorkerTypeQuery {
-                allocation_min_task_memory: None,
+                cpu_memory_routing: None,
                 allocation_task_time_range: None,
                 partial: true,
                 descriptor,
@@ -857,7 +857,7 @@ fn test_query_unknown_do_not_add_extra() {
     let r = compute_new_worker_query(
         rt.core(),
         &[WorkerTypeQuery {
-            allocation_min_task_memory: None,
+            cpu_memory_routing: None,
             allocation_task_time_range: None,
             partial: true,
             descriptor: ResourceDescriptor::simple_cpus(1),
@@ -881,7 +881,7 @@ fn test_query_after_task_cancel() {
     let r = compute_new_worker_query(
         rt.core(),
         &[WorkerTypeQuery {
-            allocation_min_task_memory: None,
+            cpu_memory_routing: None,
             allocation_task_time_range: None,
             partial: true,
             descriptor: ResourceDescriptor::new(Vec::new(), Default::default()),
@@ -894,10 +894,13 @@ fn test_query_after_task_cancel() {
     assert_eq!(r.single_node_workers_per_query, vec![0]);
 }
 
-fn large_memory_query(cpus: u32, count: u32) -> WorkerTypeQuery {
+fn cpu_memory_query(cpus: u32, large: bool, count: u32) -> WorkerTypeQuery {
     let mut resources = ResourceDescriptor::simple_cpus(cpus).resources;
-    resources.push(ResourceDescriptorItem::sum("mem", 1536000));
-    resources.push(ResourceDescriptorItem::sum("worker/cpuLarge", cpus));
+    resources.push(ResourceDescriptorItem::sum(
+        "mem",
+        if large { cpus * 32000 } else { cpus * 4000 },
+    ));
+    resources.push(ResourceDescriptorItem::sum("worker/cpu", cpus));
     WorkerTypeQuery {
         descriptor: ResourceDescriptor::new(resources, Default::default()),
         partial: false,
@@ -905,7 +908,11 @@ fn large_memory_query(cpus: u32, count: u32) -> WorkerTypeQuery {
         allocation_task_time_range: Some(
             Duration::from_secs(24 * 3600)..Duration::from_secs(72 * 3600),
         ),
-        allocation_min_task_memory: Some(766000.into()),
+        cpu_memory_routing: Some(if large {
+            CpuMemoryRouting::Large
+        } else {
+            CpuMemoryRouting::Base
+        }),
         max_sn_workers: count,
         max_workers_per_allocation: 1,
         min_utilization: 0.5,
@@ -913,52 +920,116 @@ fn large_memory_query(cpus: u32, count: u32) -> WorkerTypeQuery {
 }
 
 #[test]
-fn large_memory_allocation_requires_single_task_strictly_above_threshold() {
-    for memory in [765999, 766000, 766001] {
+fn large_memory_allocation_inclusive_ratio_boundary() {
+    for cpus in [6, 12, 16] {
+        for memory in [cpus * 16 * 1024 - 1, cpus * 16 * 1024, cpus * 16 * 1024 + 1] {
+            let mut rt = TestEnv::new();
+            let mem = rt.new_named_resource("mem");
+            let class = rt.new_named_resource("worker/cpu");
+            rt.new_task(
+                &TaskBuilder::new()
+                    .cpus(cpus)
+                    .add_resource(mem, memory)
+                    .add_resource(class, 1)
+                    .time_request(24 * 3600),
+            );
+            // Disable allocation utilization here to isolate routing at the boundary.
+            let mut base = cpu_memory_query(192, false, 1);
+            base.min_utilization = 0.0;
+            let mut large = cpu_memory_query(48, true, 1);
+            large.min_utilization = 0.0;
+            let response = compute_new_worker_query(rt.core(), &[base, large]);
+            let is_large = memory >= cpus * 16 * 1024;
+            assert_eq!(
+                response.single_node_workers_per_query,
+                vec![u32::from(!is_large), u32::from(is_large)]
+            );
+        }
+    }
+}
+
+#[test]
+fn large_memory_allocation_fifty_percent_cpu_or_memory() {
+    for (worker_cpus, cpus, memory, expected) in [
+        (6, 1, 95999, 0),
+        (6, 1, 96000, 1),
+        (6, 1, 192000, 1),
+        (12, 6, 100000, 1),
+        (12, 5, 100000, 0),
+        // Fractions must not be added: 25% CPU + 25% memory is insufficient.
+        (24, 6, 192000, 0),
+        (6, 1, 192001, 0),
+    ] {
         let mut rt = TestEnv::new();
         let mem = rt.new_named_resource("mem");
-        let class = rt.new_named_resource("worker/cpuLarge");
+        let class = rt.new_named_resource("worker/cpu");
         rt.new_task(
             &TaskBuilder::new()
-                .cpus(24)
+                .cpus(cpus)
                 .add_resource(mem, memory)
                 .add_resource(class, 1)
                 .time_request(24 * 3600),
         );
-        let response = compute_new_worker_query(rt.core(), &[large_memory_query(48, 1)]);
+        let response =
+            compute_new_worker_query(rt.core(), &[cpu_memory_query(worker_cpus, true, 1)]);
         assert_eq!(
             response.single_node_workers_per_query,
-            vec![u32::from(memory > 766000)]
+            vec![expected],
+            "{cpus} CPUs / {memory} MiB"
         );
     }
 }
 
 #[test]
-fn large_memory_allocation_cannot_be_triggered_by_sum_of_small_tasks() {
+fn large_memory_allocation_counts_only_fitting_tasks() {
     let mut rt = TestEnv::new();
     let mem = rt.new_named_resource("mem");
-    let class = rt.new_named_resource("worker/cpuLarge");
-    rt.new_tasks(
-        48,
+    let class = rt.new_named_resource("worker/cpu");
+    // The high-memory task cannot fit this worker. Its memory must not contribute.
+    rt.new_task(
         &TaskBuilder::new()
             .cpus(1)
-            .add_resource(mem, 20000)
+            .add_resource(mem, 768001)
             .add_resource(class, 1)
             .time_request(24 * 3600),
     );
-    let response = compute_new_worker_query(rt.core(), &[large_memory_query(48, 3)]);
+    rt.new_task(
+        &TaskBuilder::new()
+            .cpus(1)
+            .add_resource(mem, 192000)
+            .add_resource(class, 1)
+            .time_request(24 * 3600),
+    );
+    let response = compute_new_worker_query(rt.core(), &[cpu_memory_query(24, true, 1)]);
     assert_eq!(response.single_node_workers_per_query, vec![0]);
 }
 
 #[test]
-fn large_memory_allocation_small_tasks_fill_but_do_not_trigger_extra_workers() {
+fn large_memory_allocation_aggregates_eligible_memory_demand() {
     let mut rt = TestEnv::new();
     let mem = rt.new_named_resource("mem");
-    let class = rt.new_named_resource("worker/cpuLarge");
+    let class = rt.new_named_resource("worker/cpu");
+    rt.new_tasks(
+        2,
+        &TaskBuilder::new()
+            .cpus(1)
+            .add_resource(mem, 100000)
+            .add_resource(class, 1)
+            .time_request(24 * 3600),
+    );
+    let response = compute_new_worker_query(rt.core(), &[cpu_memory_query(12, true, 1)]);
+    assert_eq!(response.single_node_workers_per_query, vec![1]);
+}
+
+#[test]
+fn large_memory_allocation_base_tasks_cannot_trigger_or_fill_workers() {
+    let mut rt = TestEnv::new();
+    let mem = rt.new_named_resource("mem");
+    let class = rt.new_named_resource("worker/cpu");
     rt.new_task(
         &TaskBuilder::new()
             .cpus(1)
-            .add_resource(mem, 800000)
+            .add_resource(mem, 100000)
             .add_resource(class, 1)
             .time_request(24 * 3600),
     );
@@ -966,83 +1037,149 @@ fn large_memory_allocation_small_tasks_fill_but_do_not_trigger_extra_workers() {
         100,
         &TaskBuilder::new()
             .cpus(1)
-            .add_resource(mem, 1)
+            .add_resource(mem, 100)
             .add_resource(class, 1)
             .time_request(24 * 3600),
     );
-    let response = compute_new_worker_query(rt.core(), &[large_memory_query(48, 3)]);
-    assert_eq!(response.single_node_workers_per_query, vec![1]);
+    let response = compute_new_worker_query(rt.core(), &[cpu_memory_query(12, true, 3)]);
+    assert_eq!(response.single_node_workers_per_query, vec![0]);
 }
 
 #[test]
-fn large_memory_allocation_still_requires_fifty_percent_cpu_demand() {
-    for cpus in [23, 24] {
-        let mut rt = TestEnv::new();
-        let mem = rt.new_named_resource("mem");
-        let class = rt.new_named_resource("worker/cpuLarge");
-        rt.new_task(
+fn large_memory_allocation_connected_workers_enforce_route_below_utilization_threshold() {
+    let mut rt = TestEnv::new();
+    let mem = rt.new_named_resource("mem");
+    let class = rt.new_named_resource("worker/cpu");
+    let large_worker = rt.new_worker(
+        &WorkerBuilder::new(48)
+            .res_sum("mem", 1536000)
+            .res_sum("worker/cpu", 48)
+            .group("cpu_large_quarter")
+            .time_limit_s(3601),
+    );
+    let base_worker = rt.new_worker(
+        &WorkerBuilder::new(192)
+            .res_sum("mem", 766000)
+            .res_sum("worker/cpu", 192)
+            .group("cpu_base_full")
+            .time_limit_s(3601),
+    );
+    let mut tasks = Vec::new();
+    for (cpus, memory, large) in [
+        (1, 95999, false),
+        (1, 96000, true),
+        (6, 98303, false),
+        (6, 98304, true),
+    ] {
+        let id = rt.new_task(
             &TaskBuilder::new()
                 .cpus(cpus)
-                .add_resource(mem, 800000)
+                .add_resource(mem, memory)
                 .add_resource(class, 1)
-                .time_request(24 * 3600),
+                .time_request(3600),
         );
-        let response = compute_new_worker_query(rt.core(), &[large_memory_query(48, 1)]);
+        tasks.push((id, large));
+    }
+    rt.schedule();
+    for (id, large) in tasks {
+        let task = rt.core().get_task(id);
+        assert!(task.is_assigned());
         assert_eq!(
-            response.single_node_workers_per_query,
-            vec![u32::from(cpus >= 24)]
+            task.assigned_placement(&Default::default()).unwrap().0,
+            if large { large_worker } else { base_worker }
         );
     }
 }
 
 #[test]
-fn large_memory_allocation_connected_worker_accepts_small_tasks_only_from_same_class() {
+fn large_memory_allocation_connected_large_worker_never_backfills_base_tasks() {
     let mut rt = TestEnv::new();
     let mem = rt.new_named_resource("mem");
-    let class = rt.new_named_resource("worker/cpuLarge");
-    let base = rt.new_named_resource("worker/cpu");
+    let class = rt.new_named_resource("worker/cpu");
     rt.new_worker(
         &WorkerBuilder::new(48)
             .res_sum("mem", 1536000)
-            .res_sum("worker/cpuLarge", 48)
+            .res_sum("worker/cpu", 48)
+            .group("cpu_large_quarter")
             .time_limit_s(3601),
     );
-    let small = rt.new_task(
-        &TaskBuilder::new()
-            .cpus(1)
-            .add_resource(mem, 100)
-            .add_resource(class, 1)
-            .time_request(3600),
-    );
-    let regular = rt.new_task(
-        &TaskBuilder::new()
-            .cpus(1)
-            .add_resource(mem, 100)
-            .add_resource(base, 1)
-            .time_request(3600),
-    );
-    rt.schedule();
-    assert!(rt.core().get_task(small).is_assigned());
-    assert!(!rt.core().get_task(regular).is_assigned());
-    let response = compute_new_worker_query(rt.core(), &[large_memory_query(48, 1)]);
-    assert_eq!(response.single_node_workers_per_query, vec![0]);
+    for memory in [100, 16384, 95999] {
+        let task = rt.new_task(
+            &TaskBuilder::new()
+                .cpus(1)
+                .add_resource(mem, memory)
+                .add_resource(class, 1)
+                .time_request(3600),
+        );
+        rt.schedule();
+        assert!(!rt.core().get_task(task).is_assigned());
+    }
 }
 
 #[test]
-fn large_memory_allocation_missing_memory_pool_is_absent_not_probed() {
+fn large_memory_allocation_missing_memory_is_base() {
     let mut rt = TestEnv::new();
-    let class = rt.new_named_resource("worker/cpuLarge");
+    let class = rt.new_named_resource("worker/cpu");
     rt.new_task(
         &TaskBuilder::new()
             .cpus(24)
             .add_resource(class, 1)
             .time_request(24 * 3600),
     );
-    let mut query = large_memory_query(48, 1);
-    query
-        .descriptor
-        .resources
-        .retain(|resource| resource.name != "mem");
-    let response = compute_new_worker_query(rt.core(), &[query]);
-    assert_eq!(response.single_node_workers_per_query, vec![0]);
+    let response = compute_new_worker_query(
+        rt.core(),
+        &[
+            cpu_memory_query(48, false, 1),
+            cpu_memory_query(48, true, 1),
+        ],
+    );
+    assert_eq!(response.single_node_workers_per_query, vec![1, 0]);
+}
+
+#[test]
+fn large_memory_allocation_connected_base_worker_rejects_large_task_that_fits() {
+    let mut rt = TestEnv::new();
+    let mem = rt.new_named_resource("mem");
+    let class = rt.new_named_resource("worker/cpu");
+    rt.new_worker(
+        &WorkerBuilder::new(192)
+            .res_sum("mem", 766000)
+            .res_sum("worker/cpu", 192)
+            .group("cpu_base_full"),
+    );
+    let task = rt.new_task(
+        &TaskBuilder::new()
+            .cpus(1)
+            .add_resource(mem, 96000)
+            .add_resource(class, 1),
+    );
+    rt.schedule();
+    assert!(!rt.core().get_task(task).is_assigned());
+}
+
+#[test]
+fn large_memory_allocation_below_floor_routes_to_base_and_triggers_by_memory() {
+    for (memory, expected) in [(95999, vec![1, 0]), (96000, vec![0, 1])] {
+        let mut rt = TestEnv::new();
+        let mem = rt.new_named_resource("mem");
+        let class = rt.new_named_resource("worker/cpu");
+        rt.new_task(
+            &TaskBuilder::new()
+                .cpus(1)
+                .add_resource(mem, memory)
+                .add_resource(class, 1)
+                .time_request(24 * 3600),
+        );
+        let mut base = cpu_memory_query(48, false, 1);
+        base.descriptor
+            .resources
+            .iter_mut()
+            .find(|r| r.name == "mem")
+            .unwrap()
+            .kind = ResourceDescriptorKind::Sum {
+            size: 191500.into(),
+        };
+        let response = compute_new_worker_query(rt.core(), &[base, cpu_memory_query(6, true, 1)]);
+        assert_eq!(response.single_node_workers_per_query, expected);
+    }
 }
