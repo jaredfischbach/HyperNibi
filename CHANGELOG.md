@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1
+## 0.1.2
 
 - Route CPU tasks automatically to large-memory workers when requested memory is at least 96000 MiB and at least CPUs × 16 × 1024 MiB; route all other CPU tasks to base workers.
 - Use `worker/cpu=1` for both CPU worker families while keeping scheduling separate, including on connected workers with spare capacity, to prevent cross-family backfilling.
