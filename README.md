@@ -39,7 +39,7 @@ Memory is in MiB, matching SLURM `--mem=<value>M`. Note: `1G = 1024M`.
 
 | Worker group | CPUs | Memory (MiB) | Task class (`--resource`) | Minimum requested demand for a new allocation | Total limit | Backlog | Exclusive |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | --- |
-| `cpu_base_full` | 192 | 766000 | `worker/cpu=1` | 96 CPUs **or** 383000 MiB (50%) | 100 | 25 | Yes |
+| `cpu_base_full` | 192 | 766000 | `worker/cpu=1` | 96 CPUs **or** 383000 MiB (50%) | 40 | 20 | Yes |
 | `cpu_base_half` | 96 | 383000 | `worker/cpu=1` | 48 CPUs **or** 191500 MiB (50%) | 1 | 1 | No |
 | `cpu_base_quarter` | 48 | 191500 | `worker/cpu=1` | 24 CPUs **or** 95750 MiB (50%) | 1 | 1 | No |
 | `cpu_base_eighth` | 24 | 95750 | `worker/cpu=1` | 12 CPUs **or** 47875 MiB (50%) | 1 | 1 | No |
@@ -51,11 +51,11 @@ Memory is in MiB, matching SLURM `--mem=<value>M`. Note: `1G = 1024M`.
 | `cpu_large_eighth` | 24 | 768000 | `worker/cpu=1` | 12 CPUs **or** 384000 MiB (50%) | 1 | 1 | No |
 | `cpu_large_sixteenth` | 12 | 384000 | `worker/cpu=1` | 6 CPUs **or** 192000 MiB (50%) | 1 | 1 | No |
 | `cpu_large_thirtysecond` | 6 | 192000 | `worker/cpu=1` | 3 CPUs **or** 96000 MiB (50%) | 1 | 1 | No |
-| `mi300a` | 24 | 126750 | `worker/mi300a=1` | N/A | 8 | 4 | No |
+| `mi300a` | 24 | 126750 | `worker/mi300a=1` | N/A | 4 | 4 | No |
 | `h100_full` | 14 | 256000 | `worker/h100=1` | N/A | 16 | 8 | No |
-| `h100_1g.10gb` | 2 | 31744 | `worker/h100mig10=1` | N/A | 48 | 24 | No |
-| `h100_2g.20gb` | 4 | 63488 | `worker/h100mig20=1` | N/A | 24 | 12 | No |
-| `H100-3g.40gb` | 6 | 126976 | `worker/h100mig40=1` | N/A | 24 | 12 | No |
+| `h100_1g.10gb` | 2 | 31744 | `worker/h100mig10=1` | N/A | 32 | 16 | No |
+| `h100_2g.20gb` | 4 | 63488 | `worker/h100mig20=1` | N/A | 16 | 8 | No |
+| `H100-3g.40gb` | 6 | 126976 | `worker/h100mig40=1` | N/A | 16 | 8 | No |
 
 GPU workers each reserve **one** matching GPU or MIG instance via SLURM `--gres=gpu:<type>:1`. GPU tasks must also explicitly request the exact GPU or MIG class from the table, **`--resource gpus=1`**, including matching their defined CPU and memory allotments. For example, `--resource worker/h100mig20=1` selects the 20-GB H100 MIG type. Each task reserves the worker's one indexed device. Every task must request its resource class using `--resource`. All CPU tasks use `worker/cpu=1`; CPU family selection follows the memory rule below. GPU tasks use their exact GPU class.
 
