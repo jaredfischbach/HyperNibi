@@ -39,7 +39,7 @@ Memory is in MiB, matching SLURM `--mem=<value>M`. Note: `1G = 1024M`.
 
 | Worker group | CPUs | Memory (MiB) | Task class (`--resource`) | Minimum requested demand for a new allocation | Total limit | Backlog | Exclusive |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | --- |
-| `cpu_base_full` | 192 | 766000 | `worker/cpu=1` | 96 CPUs **or** 383000 MiB (50%) | 40 | 20 | Yes |
+| `cpu_base_full` | 192 | 766000 | `worker/cpu=1` | 96 CPUs **or** 383000 MiB (50%) | 25 | 25 | Yes |
 | `cpu_base_half` | 96 | 383000 | `worker/cpu=1` | 48 CPUs **or** 191500 MiB (50%) | 1 | 1 | No |
 | `cpu_base_quarter` | 48 | 191500 | `worker/cpu=1` | 24 CPUs **or** 95750 MiB (50%) | 1 | 1 | No |
 | `cpu_base_eighth` | 24 | 95750 | `worker/cpu=1` | 12 CPUs **or** 47875 MiB (50%) | 1 | 1 | No |
