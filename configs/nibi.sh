@@ -40,7 +40,7 @@ add_queue() {
 
 for hours in 3 12 24 72 168; do
     add_queue cpu_base_full "$hours" 192 766000 'worker/cpu=sum(192)' \
-        --group cpu_base_full --max-worker-count 100 --backlog 25 \
+        --group cpu_base_full --max-worker-count 25 --backlog 25 \
         --allocation-min-utilization 0.5 --idle-timeout 5m \
         -- --account="$SLURM_ACCOUNT" --ntasks-per-node=1 \
         --cpus-per-task=192 --threads-per-core=1 --mem=766000M --exclusive
@@ -113,7 +113,7 @@ for hours in 3 12 24 72 168; do
 
     add_queue mi300a "$hours" 24 126750 'worker/mi300a=[0]' \
         --resource 'gpus=[0]' \
-        --group mi300a --max-worker-count 8 --backlog 4 --idle-timeout 5m \
+        --group mi300a --max-worker-count 4 --backlog 4 --idle-timeout 5m \
         -- --account="$SLURM_ACCOUNT" --ntasks-per-node=1 \
         --cpus-per-task=24 --threads-per-core=1 --mem=126750M --gres=gpu:mi300a:1
 
@@ -126,21 +126,21 @@ for hours in 3 12 24 72 168; do
 
     add_queue h100_1g.10gb "$hours" 2 31744 'worker/h100mig10=[0]' \
         --resource 'gpus=[0]' \
-        --group h100_1g.10gb --max-worker-count 48 --backlog 24 --idle-timeout 5m \
+        --group h100_1g.10gb --max-worker-count 32 --backlog 16 --idle-timeout 5m \
         -- --account="$SLURM_ACCOUNT" --ntasks-per-node=1 \
         --cpus-per-task=2 --threads-per-core=1 --mem=31744M \
         --gres=gpu:nvidia_h100_80gb_hbm3_1g.10gb:1
 
     add_queue h100_2g.20gb "$hours" 4 63488 'worker/h100mig20=[0]' \
         --resource 'gpus=[0]' \
-        --group h100_2g.20gb --max-worker-count 24 --backlog 12 --idle-timeout 5m \
+        --group h100_2g.20gb --max-worker-count 16 --backlog 8 --idle-timeout 5m \
         -- --account="$SLURM_ACCOUNT" --ntasks-per-node=1 \
         --cpus-per-task=4 --threads-per-core=1 --mem=63488M \
         --gres=gpu:nvidia_h100_80gb_hbm3_2g.20gb:1
 
     add_queue H100-3g.40gb "$hours" 6 126976 'worker/h100mig40=[0]' \
         --resource 'gpus=[0]' \
-        --group H100-3g.40gb --max-worker-count 24 --backlog 12 --idle-timeout 5m \
+        --group H100-3g.40gb --max-worker-count 16 --backlog 8 --idle-timeout 5m \
         -- --account="$SLURM_ACCOUNT" --ntasks-per-node=1 \
         --cpus-per-task=6 --threads-per-core=1 --mem=126976M \
         --gres=gpu:nvidia_h100_80gb_hbm3_3g.40gb:1
