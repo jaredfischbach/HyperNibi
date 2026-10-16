@@ -5,7 +5,7 @@
     set -euo pipefail
 
     HQ_INSTALL_DIR="/project/$SLURM_ACCOUNT/tools/hyperqueue"
-    mkdir -p "$HQ_INSTALL_DIR/$HQ_RELEASE_TAG"
+    mkdir -p "$HQ_INSTALL_DIR"
     mkdir -p "$HOME/.bashrc.d"
     mkdir -p "$HOME/hyperqueue"
     mkdir -p "$HOME/logs"
@@ -15,6 +15,8 @@
         'https://api.github.com/repos/jaredfischbach/HyperNibi/releases/latest'
     HQ_RELEASE_TAG=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["tag_name"])' \
         "$HQ_INSTALL_DIR/release.json")
+    mkdir -p "$HQ_INSTALL_DIR/$HQ_RELEASE_TAG"
+
     curl -fL --retry 3 \
         -o "$HQ_INSTALL_DIR/$HQ_RELEASE_TAG/hq-fork.tar.gz" \
         "https://github.com/jaredfischbach/HyperNibi/releases/download/$HQ_RELEASE_TAG/hq-$HQ_RELEASE_TAG-linux-x64.tar.gz"
