@@ -1,7 +1,9 @@
 # Changelog
 
-## 0.1.2
+## 0.1.3
+- Adjusted resource limits to reduce excessive backlog of slurm submissions.
 
+## 0.1.2
 - Route CPU tasks automatically to large-memory workers when requested memory is at least 96000 MiB and at least CPUs × 16 × 1024 MiB; route all other CPU tasks to base workers.
 - Use `worker/cpu=1` for both CPU worker families while keeping scheduling separate, including on connected workers with spare capacity, to prevent cross-family backfilling.
 - Allow either CPU or memory utilization to satisfy the 50% allocation minimum.
@@ -11,5 +13,4 @@
 - Add regression coverage for routing boundaries, allocation thresholds, worker sizing, and connected-worker scheduling.
 
 ## 0.1.0
-
 - Initial release.
