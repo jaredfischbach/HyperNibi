@@ -14,9 +14,7 @@
 
 set -euo pipefail
 
-export PATH=/project/$SLURM_ACCOUNT/tools/hyperqueue/0.26.2:$PATH
-export HQ_JOURNAL_DIR="$HOME/hyperqueue/journal"
-export HQ_SERVER_DIR="$HOME/hyperqueue/server"
+source "$HOME/.bashrc.d/hyperqueue.sh"
 
 idle_timeout_seconds=1800  # 30 minutes
 check_interval_seconds=30
