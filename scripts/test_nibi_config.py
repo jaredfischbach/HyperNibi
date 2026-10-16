@@ -12,7 +12,7 @@ from test_journal_directory import run, server
 ROOT = Path(__file__).resolve().parents[1]
 # CPUs, memory MiB, class, total cap, backlog, exclusive, GPU type
 EXPECTED = {
-    "cpu_base_full": (192, 766000, "worker/cpu", 100, 25, True, None),
+    "cpu_base_full": (192, 766000, "worker/cpu", 25, 25, True, None),
     "cpu_base_half": (96, 383000, "worker/cpu", 1, 1, False, None),
     "cpu_base_quarter": (48, 191500, "worker/cpu", 1, 1, False, None),
     "cpu_base_eighth": (24, 95750, "worker/cpu", 1, 1, False, None),
@@ -24,11 +24,11 @@ EXPECTED = {
     "cpu_large_eighth": (24, 768000, "worker/cpu", 1, 1, False, None),
     "cpu_large_sixteenth": (12, 384000, "worker/cpu", 1, 1, False, None),
     "cpu_large_thirtysecond": (6, 192000, "worker/cpu", 1, 1, False, None),
-    "mi300a": (24, 126750, "worker/mi300a", 8, 4, False, "mi300a"),
+    "mi300a": (24, 126750, "worker/mi300a", 4, 4, False, "mi300a"),
     "h100_full": (14, 256000, "worker/h100", 16, 8, False, "nvidia_h100_80gb_hbm3"),
-    "h100_1g.10gb": (2, 31744, "worker/h100mig10", 48, 24, False, "nvidia_h100_80gb_hbm3_1g.10gb"),
-    "h100_2g.20gb": (4, 63488, "worker/h100mig20", 24, 12, False, "nvidia_h100_80gb_hbm3_2g.20gb"),
-    "H100-3g.40gb": (6, 126976, "worker/h100mig40", 24, 12, False, "nvidia_h100_80gb_hbm3_3g.40gb"),
+    "h100_1g.10gb": (2, 31744, "worker/h100mig10", 32, 16, False, "nvidia_h100_80gb_hbm3_1g.10gb"),
+    "h100_2g.20gb": (4, 63488, "worker/h100mig20", 16, 8, False, "nvidia_h100_80gb_hbm3_2g.20gb"),
+    "H100-3g.40gb": (6, 126976, "worker/h100mig40", 16, 8, False, "nvidia_h100_80gb_hbm3_3g.40gb"),
 }
 
 
